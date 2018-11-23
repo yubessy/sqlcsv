@@ -1,4 +1,4 @@
-int_col,real_col,varchar_col,timestamp_col
+int,real,varchar,timestamp
 4,4.0,ddd,2004-04-04 02:34:56
 5,5.0,eee,2005-05-05 03:45:12
 ,,,
