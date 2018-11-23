@@ -12,7 +12,7 @@ from .casting import TypeCaster
 @click.option('--delimiter', type=str, default=',')
 @click.pass_context
 def cli(ctx, db_url, header, delimiter):
-    ctx.obj['db-url'] = db_url
+    ctx.obj['engine'] = create_engine(db_url)
     ctx.obj['header'] = header
     ctx.obj['delimiter'] = delimiter
 
@@ -26,17 +26,19 @@ def select(ctx, lineterminator, sqlfile, csvfile):
     sql = sqlfile.read()
     sqlfile.close()
     writer = csv.writer(
-        csvfile=csvfile,
+        csvfile,
         delimiter=ctx.obj['delimiter'],
         lineterminator=lineterminator,
     )
-    engine = create_engine(ctx.obj['db-url'])
 
-    result = engine.execute(sql)
-    if ctx.obj['header']:
-        writer.writerow(result.keys())
-    for row in result:
-        writer.writerow(row)
+    with ctx.obj['engine'].connect() as connection:
+        result = connection.execute(sql)
+
+        if ctx.obj['header']:
+            writer.writerow(result.keys())
+
+        for row in result:
+            writer.writerow(row)
 
 
 @cli.command()
@@ -50,16 +52,16 @@ def insert(ctx, types, nullables, date_format, sqlfile, csvfile):
     sql = sqlfile.read()
     sqlfile.close()
     reader = csv.reader(
-        csvfile=csvfile,
+        csvfile,
         delimiter=ctx.obj['delimiter'],
     )
-    engine = create_engine(ctx.obj['db-url'])
 
     caster = TypeCaster(types, nullables, date_format)
 
-    if ctx.obj['header']:
-        next(reader)
-    engine.execute(sql, *(caster.cast(row) for row in reader))
+    with ctx.obj['engine'].connect() as connection:
+        if ctx.obj['header']:
+            next(reader)
+        connection.execute(sql, *(caster.cast(row) for row in reader))
 
 
 def main():
