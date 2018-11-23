@@ -7,9 +7,9 @@ from sqlalchemy import create_engine
 from .casting import TypeCaster
 
 
-def read_sql(sql, sqlfile):
+def get_sql(sql, sqlfile):
     if sql is None and sqlfile is None:
-        raise RuntimeError("Either sql or sqlfile is required")
+        raise ValueError("Either sql or sqlfile is required")
     elif sql is None:
         sql = sqlfile.read()
         sqlfile.close()
@@ -39,20 +39,22 @@ def cli(ctx, db_url, pre_sql, header, delimiter, lineterminator):
 @click.pass_context
 def select(ctx, sql, sqlfile, datafile):
     engine = create_engine(ctx.obj['db-url'])
-    sql = read_sql(sql, sqlfile)
+    sql = get_sql(sql, sqlfile)
     writer = csv.writer(
         datafile,
         delimiter=ctx.obj['delimiter'],
         lineterminator=ctx.obj['lineterminator'],
     )
+    pre_sql = ctx.obj['pre-sql']
+    header = ctx.obj['header']
 
     with engine.connect() as conn:
-        if ctx.obj['pre-sql']:
-            conn.execute(ctx.obj['pre-sql'])
+        if pre_sql:
+            conn.execute(pre_sql)
 
         result = conn.execute(sql)
 
-        if ctx.obj['header']:
+        if header:
             writer.writerow(result.keys())
 
         for row in result:
@@ -69,18 +71,20 @@ def select(ctx, sql, sqlfile, datafile):
 @click.pass_context
 def insert(ctx, sql, sqlfile, datafile, types, nullables, date_format):
     engine = create_engine(ctx.obj['db-url'])
-    sql = read_sql(sql, sqlfile)
+    sql = get_sql(sql, sqlfile)
     reader = csv.reader(
         datafile,
         delimiter=ctx.obj['delimiter'],
     )
+    pre_sql = ctx.obj['pre-sql']
+    header = ctx.obj['header']
     caster = TypeCaster(types, nullables, date_format)
 
     with engine.connect() as conn:
-        if ctx.obj['pre-sql']:
-            conn.execute(ctx.obj['pre-sql'])
+        if pre_sql:
+            conn.execute(pre_sql)
 
-        if ctx.obj['header']:
+        if header:
             next(reader)
 
         conn.execute(sql, *(caster.cast(row) for row in reader))
