@@ -16,6 +16,7 @@ def _castfunc(spec, date_format):
 
 
 def _nullable_flag(spec):
+    spec = spec.lower()
     if spec in ('t', 'true', '1'):
         return True
     elif spec in ('f', 'false', '0'):
