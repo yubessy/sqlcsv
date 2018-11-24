@@ -24,6 +24,28 @@ def _get_sql(sql, sqlfile):
     return sql
 
 
+def _flag_to_type(spec):
+    spec = spec.lower()
+    if spec in ('i', 'int'):
+        return int
+    elif spec in ('f', 'float'):
+        return float
+    elif spec in ('s', 'str'):
+        return str
+    else:
+        raise ValueError("Unknown type spec '{}'".format(spec))
+
+
+def _flag_to_bool(spec):
+    spec = spec.lower()
+    if spec in ('t', 'true', '1'):
+        return True
+    elif spec in ('f', 'false', '0'):
+        return False
+    else:
+        raise ValueError("Unknown nullable spec '{}'".format(spec))
+
+
 @click.group()
 @click.option('-u', '--db-url', envvar='SQLCSV_DB_URL', required=True)
 @click.option('-p', '--pre-sql', default=None)
@@ -80,7 +102,7 @@ def select(ctx, sql, sqlfile, outfile):
 def insert(ctx, sql, sqlfile, infile, types, nullables):
     command = ctx.obj
     sql = _get_sql(sql, sqlfile)
-    types = types.split(',')
-    nullables = nullables and nullables.split(',')
+    types = [_flag_to_type(s) for s in types.split(',')]
+    nullables = nullables and [_flag_to_bool(s) for s in nullables.split(',')]
 
     command.insert(sql, infile, types, nullables)
