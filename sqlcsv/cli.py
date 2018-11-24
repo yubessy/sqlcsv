@@ -28,6 +28,7 @@ def get_sql(sql, sqlfile):
 @click.group()
 @click.option('-u', '--db-url', envvar='SQLCSV_DB_URL', required=True)
 @click.option('-p', '--pre-sql', default=None)
+@click.option('-P', '--post-sql', default=None)
 @click.option('-H', '--no-header', is_flag=True)
 @click.option('-T', '--tab', is_flag=True)
 @click.option('-d', '--delimiter', default=',')
@@ -38,11 +39,13 @@ def get_sql(sql, sqlfile):
 @click.option('-b', '--doublequote', is_flag=True)
 @click.pass_context
 def cli(
-    ctx, db_url, pre_sql, no_header, tab, delimiter, lineterminator,
+    ctx, db_url, pre_sql, post_sql,
+    no_header, tab, delimiter, lineterminator,
     quoting, quotechar, escapechar, doublequote,
 ):
     ctx.obj['db-url'] = db_url
     ctx.obj['pre-sql'] = pre_sql
+    ctx.obj['post-sql'] = post_sql
     ctx.obj['header'] = not no_header
     ctx.obj['csv-diarect'] = dict(
         delimiter='\t' if tab else delimiter,
@@ -63,7 +66,7 @@ def select(ctx, sql, sqlfile, outfile):
     engine = create_engine(ctx.obj['db-url'])
     sql = get_sql(sql, sqlfile)
     writer = csv.writer(outfile, **ctx.obj['csv-diarect'])
-    pre_sql = ctx.obj['pre-sql']
+    pre_sql, post_sql = ctx.obj['pre-sql'], ctx.obj['post-sql']
     header = ctx.obj['header']
 
     with engine.connect() as conn:
@@ -78,6 +81,9 @@ def select(ctx, sql, sqlfile, outfile):
         for row in result:
             writer.writerow(row)
 
+        if post_sql:
+            conn.execute(post_sql)
+
 
 @cli.command()
 @click.option('-s', '--sql', type=str, default=None)
@@ -90,7 +96,7 @@ def insert(ctx, sql, sqlfile, infile, types, nullables):
     engine = create_engine(ctx.obj['db-url'])
     sql = get_sql(sql, sqlfile)
     reader = csv.reader(infile, **ctx.obj['csv-diarect'])
-    pre_sql = ctx.obj['pre-sql']
+    pre_sql, post_sql = ctx.obj['pre-sql'], ctx.obj['post-sql']
     header = ctx.obj['header']
     caster = TypeCaster(types, nullables)
 
@@ -102,6 +108,9 @@ def insert(ctx, sql, sqlfile, infile, types, nullables):
             next(reader)
 
         conn.execute(sql, *(caster.cast(row) for row in reader))
+
+        if post_sql:
+            conn.execute(post_sql)
 
 
 def main():
