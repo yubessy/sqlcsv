@@ -1,4 +1,5 @@
 from io import StringIO
+
 from pytest import mark, raises
 
 import sqlcsv.cli as cli
