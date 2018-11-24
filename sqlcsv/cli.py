@@ -26,28 +26,31 @@ def get_sql(sql, sqlfile):
 
 
 @click.group()
-@click.option('-u', '--db-url', type=str, envvar='SQLCSV_DB_URL', required=True)
-@click.option('-p', '--pre-sql', type=str, default=None)
+@click.option('-u', '--db-url', envvar='SQLCSV_DB_URL', required=True)
+@click.option('-p', '--pre-sql', default=None)
 @click.option('-H', '--no-header', is_flag=True)
 @click.option('-T', '--tab', is_flag=True)
-@click.option('-d', '--delimiter', type=str, default=',')
-@click.option('-l', '--lineterminator', type=str, default='\n')
+@click.option('-d', '--delimiter', default=',')
+@click.option('-l', '--lineterminator', default='\n')
 @click.option('-Q', '--quoting', type=click.Choice(QUOTING.keys(), case_sensitive=False), default='MINIMAL')
-@click.option('-q', '--quotechar', type=str, default='"')
-@click.option('-e', '--escapechar', type=str, default=None)
+@click.option('-q', '--quotechar', default='"')
+@click.option('-e', '--escapechar', default=None)
 @click.option('-b', '--doublequote', is_flag=True)
 @click.pass_context
-def cli(ctx, u, p, H, T, d, l, Q, q, e, b):
-    ctx.obj['db-url'] = u
-    ctx.obj['pre-sql'] = p
-    ctx.obj['header'] = not H
+def cli(
+    ctx, db_url, pre_sql, no_header, tab, delimiter, lineterminator,
+    quoting, quotechar, escapechar, doublequote,
+):
+    ctx.obj['db-url'] = db_url
+    ctx.obj['pre-sql'] = pre_sql
+    ctx.obj['header'] = not no_header
     ctx.obj['csv-diarect'] = dict(
-        delimiter='\t' if T else d,
-        lineterminator=l,
-        quoting=QUOTING[Q.upper()],
-        quotechar=q,
-        escapechar=e,
-        doublequote=b,
+        delimiter='\t' if tab else delimiter,
+        lineterminator=lineterminator,
+        quoting=QUOTING[quoting.upper()],
+        quotechar=quotechar,
+        escapechar=escapechar,
+        doublequote=doublequote,
     )
 
 
