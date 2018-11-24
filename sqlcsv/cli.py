@@ -7,6 +7,14 @@ from sqlalchemy import create_engine
 from .casting import TypeCaster
 
 
+QUOTING = {
+    'ALL': csv.QUOTE_ALL,
+    'MINIMAL': csv.QUOTE_MINIMAL,
+    'NONNUMERIC': csv.QUOTE_NONNUMERIC,
+    'NONE': csv.QUOTE_NONE,
+}
+
+
 def get_sql(sql, sqlfile):
     if sql is None and sqlfile is None:
         raise ValueError("Either sql or sqlfile is required")
@@ -19,18 +27,28 @@ def get_sql(sql, sqlfile):
 
 @click.group()
 @click.option('-u', '--db-url', type=str, envvar='SQLCSV_DB_URL', required=True)
-@click.option('-H', '--no-header', is_flag=True)
-@click.option('-d', '--delimiter', type=str, default=None)
-@click.option('-T', '--tab', is_flag=True)
-@click.option('-l', '--lineterminator', type=str, default='\n')
 @click.option('-p', '--pre-sql', type=str, default=None)
+@click.option('-H', '--no-header', is_flag=True)
+@click.option('-T', '--tab', is_flag=True)
+@click.option('-d', '--delimiter', type=str, default=',')
+@click.option('-l', '--lineterminator', type=str, default='\n')
+@click.option('-Q', '--quoting', type=click.Choice(QUOTING.keys(), case_sensitive=False), default='MINIMAL')
+@click.option('-q', '--quotechar', type=str, default='"')
+@click.option('-e', '--escapechar', type=str, default=None)
+@click.option('-b', '--doublequote', is_flag=True)
 @click.pass_context
-def cli(ctx, db_url, no_header, delimiter, tab, lineterminator, pre_sql):
-    ctx.obj['db-url'] = db_url
-    ctx.obj['header'] = not no_header
-    ctx.obj['delimiter'] = delimiter or ('\t' if tab else ',')
-    ctx.obj['lineterminator'] = lineterminator
-    ctx.obj['pre-sql'] = pre_sql
+def cli(ctx, u, p, H, T, d, l, Q, q, e, b):
+    ctx.obj['db-url'] = u
+    ctx.obj['pre-sql'] = p
+    ctx.obj['header'] = not H
+    ctx.obj['csv-diarect'] = dict(
+        delimiter='\t' if T else d,
+        lineterminator=l,
+        quoting=QUOTING[Q.upper()],
+        quotechar=q,
+        escapechar=e,
+        doublequote=b,
+    )
 
 
 @cli.command()
@@ -41,11 +59,7 @@ def cli(ctx, db_url, no_header, delimiter, tab, lineterminator, pre_sql):
 def select(ctx, sql, sqlfile, outfile):
     engine = create_engine(ctx.obj['db-url'])
     sql = get_sql(sql, sqlfile)
-    writer = csv.writer(
-        outfile,
-        delimiter=ctx.obj['delimiter'],
-        lineterminator=ctx.obj['lineterminator'],
-    )
+    writer = csv.writer(outfile, **ctx.obj['csv-diarect'])
     pre_sql = ctx.obj['pre-sql']
     header = ctx.obj['header']
 
@@ -73,10 +87,7 @@ def select(ctx, sql, sqlfile, outfile):
 def insert(ctx, sql, sqlfile, infile, types, nullables, date_format):
     engine = create_engine(ctx.obj['db-url'])
     sql = get_sql(sql, sqlfile)
-    reader = csv.reader(
-        infile,
-        delimiter=ctx.obj['delimiter'],
-    )
+    reader = csv.reader(infile, **ctx.obj['csv-diarect'])
     pre_sql = ctx.obj['pre-sql']
     header = ctx.obj['header']
     caster = TypeCaster(types, nullables, date_format)
