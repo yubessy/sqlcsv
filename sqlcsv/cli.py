@@ -17,7 +17,10 @@ QUOTING = {
 def _get_sql(sql, sqlfile):
     if sql is None and sqlfile is None:
         raise ValueError("Either sql or sqlfile is required")
-    elif sql is None:
+    elif sql is not None and sqlfile is not None:
+        raise ValueError("Either only sql or sqlfile can be specified")
+
+    if sql is None:
         sql = sqlfile.read()
         sqlfile.close()
 
@@ -102,7 +105,7 @@ def select(ctx, sql, sqlfile, outfile):
 def insert(ctx, sql, sqlfile, infile, types, nullables):
     command = ctx.obj
     sql = _get_sql(sql, sqlfile)
-    types = [_flag_to_type(s) for s in types.split(',')]
-    nullables = nullables and [_flag_to_bool(s) for s in nullables.split(',')]
+    types = tuple(map(_flag_to_type, types.split(',')))
+    nullables = nullables and tuple(map(_flag_to_bool, nullables.split(',')))
 
     command.insert(sql, infile, types, nullables)
