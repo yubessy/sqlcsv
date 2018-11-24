@@ -15,7 +15,7 @@ def _castfunc(spec, date_format):
         raise ValueError("Unknown type spec '{}'".format(spec))
 
 
-def _nullable_flag(spec):
+def _nullable(spec):
     spec = spec.lower()
     if spec in ('t', 'true', '1'):
         return True
@@ -28,12 +28,14 @@ def _nullable_flag(spec):
 class TypeCaster:
 
     def __init__(self, types, nullables, date_format):
-        self._castfuncs = [_castfunc(t, date_format) for t in types.split(',')]
+        types = types.split(',')
+        self._castfuncs = tuple(_castfunc(t, date_format) for t in types)
         if nullables:
-            self._nullables = [_nullable_flag(n) for n in nullables.split(',')]
-            assert len(self._castfuncs) == len(self._nullables)
+            nullables = nullables.split(',')
+            assert len(types) == len(nullables)
+            self._nullables = tuple(_nullable(n) for n in nullables)
         else:
-            self._nullables = [False] * len(self._castfuncs)
+            self._nullables = tuple([False] * len(types))
 
     def _cast_ith(self, i, val):
         if self._nullables[i] and not val:
