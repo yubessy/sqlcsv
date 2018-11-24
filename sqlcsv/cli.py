@@ -18,30 +18,31 @@ def get_sql(sql, sqlfile):
 
 
 @click.group()
-@click.option('--db-url', type=str, envvar='SQLCSV_DB_URL', required=True)
-@click.option('--pre-sql', type=str, default=None)
-@click.option('--header/--no-header', default=True)
-@click.option('--delimiter', type=str, default=',')
-@click.option('--lineterminator', type=str, default='\n')
+@click.option('-u', '--db-url', type=str, envvar='SQLCSV_DB_URL', required=True)
+@click.option('-H', '--no-header', is_flag=True)
+@click.option('-d', '--delimiter', type=str, default=None)
+@click.option('-T', '--tab', is_flag=True)
+@click.option('-l', '--lineterminator', type=str, default='\n')
+@click.option('-p', '--pre-sql', type=str, default=None)
 @click.pass_context
-def cli(ctx, db_url, pre_sql, header, delimiter, lineterminator):
+def cli(ctx, db_url, no_header, delimiter, tab, lineterminator, pre_sql):
     ctx.obj['db-url'] = db_url
-    ctx.obj['pre-sql'] = pre_sql
-    ctx.obj['header'] = header
-    ctx.obj['delimiter'] = delimiter
+    ctx.obj['header'] = not no_header
+    ctx.obj['delimiter'] = delimiter or ('\t' if tab else ',')
     ctx.obj['lineterminator'] = lineterminator
+    ctx.obj['pre-sql'] = pre_sql
 
 
 @cli.command()
-@click.option('--sql', type=str, default=None)
-@click.option('--sqlfile', type=click.File('r'), default=None)
-@click.option('--datafile', type=click.File('w'), default=sys.stdout)
+@click.option('-s', '--sql', type=str, default=None)
+@click.option('-f', '--sqlfile', type=click.File('r'), default=None)
+@click.option('-o', '--outfile', type=click.File('w'), default=sys.stdout)
 @click.pass_context
-def select(ctx, sql, sqlfile, datafile):
+def select(ctx, sql, sqlfile, outfile):
     engine = create_engine(ctx.obj['db-url'])
     sql = get_sql(sql, sqlfile)
     writer = csv.writer(
-        datafile,
+        outfile,
         delimiter=ctx.obj['delimiter'],
         lineterminator=ctx.obj['lineterminator'],
     )
@@ -62,18 +63,18 @@ def select(ctx, sql, sqlfile, datafile):
 
 
 @cli.command()
-@click.option('--sql', type=str, default=None)
-@click.option('--sqlfile', type=click.File('r'), default=None)
-@click.option('--datafile', type=click.File('r'), default=sys.stdin)
-@click.option('--types', type=str, required=True)
-@click.option('--nullables', type=str, default=None)
-@click.option('--date-format', type=str, default='%Y-%m-%d %H:%M:%S')
+@click.option('-s', '--sql', type=str, default=None)
+@click.option('-f', '--sqlfile', type=click.File('r'), default=None)
+@click.option('-i', '--infile', type=click.File('r'), default=sys.stdin)
+@click.option('-t', '--types', type=str, required=True)
+@click.option('-n', '--nullables', type=str, default=None)
+@click.option('-m', '--date-format', type=str, default='%Y-%m-%d %H:%M:%S')
 @click.pass_context
-def insert(ctx, sql, sqlfile, datafile, types, nullables, date_format):
+def insert(ctx, sql, sqlfile, infile, types, nullables, date_format):
     engine = create_engine(ctx.obj['db-url'])
     sql = get_sql(sql, sqlfile)
     reader = csv.reader(
-        datafile,
+        infile,
         delimiter=ctx.obj['delimiter'],
     )
     pre_sql = ctx.obj['pre-sql']
