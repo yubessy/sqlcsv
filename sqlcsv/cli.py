@@ -2,9 +2,8 @@ import csv
 import sys
 
 import click
-from sqlalchemy import create_engine
 
-from .casting import TypeCaster
+from .command import Command
 
 
 QUOTING = {
@@ -15,7 +14,7 @@ QUOTING = {
 }
 
 
-def get_sql(sql, sqlfile):
+def _get_sql(sql, sqlfile):
     if sql is None and sqlfile is None:
         raise ValueError("Either sql or sqlfile is required")
     elif sql is None:
@@ -43,17 +42,19 @@ def cli(
     no_header, tab, delimiter, lineterminator,
     quoting, quotechar, escapechar, doublequote,
 ):
-    ctx.obj['db-url'] = db_url
-    ctx.obj['pre-sql'] = pre_sql
-    ctx.obj['post-sql'] = post_sql
-    ctx.obj['header'] = not no_header
-    ctx.obj['csv-diarect'] = dict(
-        delimiter='\t' if tab else delimiter,
-        lineterminator=lineterminator,
-        quoting=QUOTING[quoting.upper()],
-        quotechar=quotechar,
-        escapechar=escapechar,
-        doublequote=doublequote,
+    ctx.obj = Command(
+        db_url=db_url,
+        pre_sql=pre_sql,
+        post_sql=post_sql,
+        header=not no_header,
+        dialect=dict(
+            delimiter='\t' if tab else delimiter,
+            lineterminator=lineterminator,
+            quoting=QUOTING[quoting.upper()],
+            quotechar=quotechar,
+            escapechar=escapechar,
+            doublequote=doublequote,
+        )
     )
 
 
@@ -63,26 +64,10 @@ def cli(
 @click.option('-o', '--outfile', type=click.File('w'), default=sys.stdout)
 @click.pass_context
 def select(ctx, sql, sqlfile, outfile):
-    engine = create_engine(ctx.obj['db-url'])
-    sql = get_sql(sql, sqlfile)
-    writer = csv.writer(outfile, **ctx.obj['csv-diarect'])
-    pre_sql, post_sql = ctx.obj['pre-sql'], ctx.obj['post-sql']
-    header = ctx.obj['header']
+    command = ctx.obj
+    sql = _get_sql(sql, sqlfile)
 
-    with engine.connect() as conn:
-        if pre_sql:
-            conn.execute(pre_sql)
-
-        result = conn.execute(sql)
-
-        if header:
-            writer.writerow(result.keys())
-
-        for row in result:
-            writer.writerow(row)
-
-        if post_sql:
-            conn.execute(post_sql)
+    command.select(sql, outfile)
 
 
 @cli.command()
@@ -93,25 +78,9 @@ def select(ctx, sql, sqlfile, outfile):
 @click.option('-n', '--nullables', type=str, default=None)
 @click.pass_context
 def insert(ctx, sql, sqlfile, infile, types, nullables):
-    engine = create_engine(ctx.obj['db-url'])
-    sql = get_sql(sql, sqlfile)
-    reader = csv.reader(infile, **ctx.obj['csv-diarect'])
-    pre_sql, post_sql = ctx.obj['pre-sql'], ctx.obj['post-sql']
-    header = ctx.obj['header']
-    caster = TypeCaster(types, nullables)
+    command = ctx.obj
+    sql = _get_sql(sql, sqlfile)
+    types = types.split(',')
+    nullables = nullables and nullables.split(',')
 
-    with engine.connect() as conn:
-        if pre_sql:
-            conn.execute(pre_sql)
-
-        if header:
-            next(reader)
-
-        conn.execute(sql, *(caster.cast(row) for row in reader))
-
-        if post_sql:
-            conn.execute(post_sql)
-
-
-def main():
-    cli(obj={})
+    command.insert(sql, infile, types, nullables)

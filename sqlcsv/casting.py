@@ -23,10 +23,8 @@ def _nullable(spec):
 class TypeCaster:
 
     def __init__(self, types, nullables):
-        types = types.split(',')
         self._castfuncs = tuple(_castfunc(t) for t in types)
         if nullables:
-            nullables = nullables.split(',')
             assert len(types) == len(nullables)
             self._nullables = tuple(_nullable(n) for n in nullables)
         else:
