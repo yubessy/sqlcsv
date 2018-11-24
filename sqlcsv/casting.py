@@ -1,7 +1,4 @@
-from datetime import datetime
-
-
-def _castfunc(spec, date_format):
+def _castfunc(spec):
     spec = spec.lower()
     if spec in ('i', 'int'):
         return int
@@ -9,8 +6,6 @@ def _castfunc(spec, date_format):
         return float
     elif spec in ('s', 'str'):
         return str
-    elif spec in ('d', 'datetime'):
-        return lambda x: datetime.strptime(x, date_format)
     else:
         raise ValueError("Unknown type spec '{}'".format(spec))
 
@@ -27,9 +22,9 @@ def _nullable(spec):
 
 class TypeCaster:
 
-    def __init__(self, types, nullables, date_format):
+    def __init__(self, types, nullables):
         types = types.split(',')
-        self._castfuncs = tuple(_castfunc(t, date_format) for t in types)
+        self._castfuncs = tuple(_castfunc(t) for t in types)
         if nullables:
             nullables = nullables.split(',')
             assert len(types) == len(nullables)

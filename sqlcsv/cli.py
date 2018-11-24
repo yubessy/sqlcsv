@@ -85,15 +85,14 @@ def select(ctx, sql, sqlfile, outfile):
 @click.option('-i', '--infile', type=click.File('r'), default=sys.stdin)
 @click.option('-t', '--types', type=str, required=True)
 @click.option('-n', '--nullables', type=str, default=None)
-@click.option('-m', '--date-format', type=str, default='%Y-%m-%d %H:%M:%S')
 @click.pass_context
-def insert(ctx, sql, sqlfile, infile, types, nullables, date_format):
+def insert(ctx, sql, sqlfile, infile, types, nullables):
     engine = create_engine(ctx.obj['db-url'])
     sql = get_sql(sql, sqlfile)
     reader = csv.reader(infile, **ctx.obj['csv-diarect'])
     pre_sql = ctx.obj['pre-sql']
     header = ctx.obj['header']
-    caster = TypeCaster(types, nullables, date_format)
+    caster = TypeCaster(types, nullables)
 
     with engine.connect() as conn:
         if pre_sql:
