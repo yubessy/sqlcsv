@@ -79,6 +79,7 @@ jobs:
             cp dist/*.tar.gz tmp/
             pip3 install tmp/*.tar.gz
             pip3 install pytest
+            sqlcsv --help
 
       - attach_workspace:
           at: tests
