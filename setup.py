@@ -22,5 +22,10 @@ setup(
     packages=[
         'sqlcsv',
     ],
+    entry_points=dict(
+        console_scripts=[
+            'sqlcsv=sqlcsv.cli:cli',
+        ],
+    ),
     install_requires=INSTALL_REQUIRES,
 )

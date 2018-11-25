@@ -87,6 +87,7 @@ jobs:
           name: test
           command: |
             source venv/bin/activate
+            sqlcsv --help
             pytest tests
 
   release:
