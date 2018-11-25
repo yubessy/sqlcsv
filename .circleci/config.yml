@@ -1,0 +1,104 @@
+version: 2
+workflows:
+  version: 2
+  main:
+    jobs:
+      - build:
+          filters:
+            tags:
+              only: /^v\d+\.\d+\.\d+(\.\w+)?$/
+
+      - test:
+          requires:
+            - build
+          filters:
+            tags:
+              only: /.*/
+
+      - hold:
+          type: approval
+          requires:
+            - test
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /.*/
+
+      - release:
+          requires:
+            - hold
+          filters:
+            tags:
+              only: /.*/
+
+jobs:
+  build:
+    docker:
+      - image: circleci/python:3
+
+    steps:
+      - checkout
+
+      - run:
+          name: lint
+          command: |
+            sudo pip3 install flake8
+            flake8 sqlcsv tests
+
+      - run:
+          name: build
+          command: |
+            if [[ $CIRCLE_TAG =~ ^v[0-9]+\..+$ ]]; then
+              echo $CIRCLE_TAG | sed 's/^v//' > VERSION
+            fi
+            python3 setup.py sdist
+
+      - persist_to_workspace:
+          root: dist
+          paths: '*.tar.gz'
+
+      - persist_to_workspace:
+          root: tests
+          paths: '*'
+
+  test:
+    docker:
+      - image: circleci/python:3
+
+    steps:
+      - attach_workspace:
+          at: dist
+
+      - run:
+          name: install
+          command: |
+            python3 -m venv venv
+            source venv/bin/activate
+            mkdir tmp
+            cp dist/*.tar.gz tmp/
+            pip3 install tmp/*.tar.gz
+            pip3 install pytest
+
+      - attach_workspace:
+          at: tests
+
+      - run:
+          name: test
+          command: |
+            source venv/bin/activate
+            pytest tests
+
+  release:
+    docker:
+      - image: circleci/python:3
+
+    steps:
+      - attach_workspace:
+          at: dist
+
+      - deploy:
+          name: release
+          command: |
+            sudo pip3 install twine
+            twine upload dist/*.tar.gz
