@@ -57,7 +57,7 @@ def _flag_to_bool(spec):
 @click.option('-T', '--tab', is_flag=True)
 @click.option('-d', '--delimiter', default=',')
 @click.option('-l', '--lineterminator', default='\n')
-@click.option('-Q', '--quoting', type=click.Choice(QUOTING.keys(), case_sensitive=False), default='MINIMAL')
+@click.option('-Q', '--quoting', type=click.Choice(QUOTING.keys(), case_sensitive=False), default='MINIMAL')  # noqa
 @click.option('-q', '--quotechar', default='"')
 @click.option('-e', '--escapechar', default=None)
 @click.option('-b', '--doublequote', is_flag=True)
