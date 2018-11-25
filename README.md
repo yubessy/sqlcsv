@@ -157,6 +157,14 @@ $ sqlcsv select --sqlfile query.sql
 $ sqlcsv insert --sqlfile query.sql --types ...
 ```
 
+### Pre and post querying
+
+In case you need to execute short query before/after the main query runs, it provides `--pre-sql` and `--post-sql` options to satisfy such needs:
+
+```
+$ sqlcsv select --pre-sql 'SET SESSION wait_timeout = 60' --sqlfile query.sql
+```
+
 ### CSV dialect
 
 If your input or output is tab-separated (TSV), use `--tab` option:
