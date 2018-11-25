@@ -1,2 +1,2 @@
-click
-sqlalchemy
+click>=7.0
+sqlalchemy>=1.2.0
