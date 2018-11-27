@@ -60,12 +60,12 @@ def _flag_to_bool(spec):
 @click.option('-Q', '--quoting', type=click.Choice(QUOTING.keys(), case_sensitive=False), default='MINIMAL')  # noqa
 @click.option('-q', '--quotechar', default='"')
 @click.option('-e', '--escapechar', default=None)
-@click.option('-b', '--doublequote', is_flag=True)
+@click.option('-B', '--no-doublequote', is_flag=True)
 @click.pass_context
 def cli(
     ctx, db_url, pre_sql, post_sql,
     no_header, tab, delimiter, lineterminator,
-    quoting, quotechar, escapechar, doublequote,
+    quoting, quotechar, escapechar, no_doublequote,
 ):
     ctx.obj = Command(
         db_url=db_url,
@@ -78,7 +78,7 @@ def cli(
             quoting=QUOTING[quoting.upper()],
             quotechar=quotechar,
             escapechar=escapechar,
-            doublequote=doublequote,
+            doublequote=not no_doublequote,
         )
     )
 
