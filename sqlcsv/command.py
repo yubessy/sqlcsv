@@ -8,10 +8,11 @@ from .casting import TypeCaster
 
 class Command:
 
-    def __init__(self, db_url, pre_sql, post_sql, header, dialect):
+    def __init__(self, db_url, pre_sql, post_sql, transaction, header, dialect):
         self._db_url = db_url
         self._pre_sql = pre_sql
         self._post_sql = post_sql
+        self._transaction = transaction
         self._header = header
         self._dialect = dialect
 
@@ -19,7 +20,7 @@ class Command:
     def _connect_exec(self):
         engine = create_engine(self._db_url)
 
-        with engine.connect() as conn:
+        with engine.begin() if self._transaction else engine.connect() as conn:
             if self._pre_sql:
                 conn.execute(self._pre_sql)
 

@@ -56,6 +56,7 @@ def command_args():
         db_url='sqlite://',
         pre_sql=None,
         post_sql=None,
+        transaction=False,
         header=True,
         dialect=dict(
             lineterminator='\n',
@@ -68,6 +69,33 @@ def test_connect_exec(db, command_args, select_all_sql):
     with cmd._connect_exec() as conn:
         result = conn.execute(select_all_sql).fetchall()
         assert result == []
+
+
+def test_connect_exec_with_transaction(db, command_args, insert_one_sql, select_all_sql):
+    command_args['transaction'] = True
+    cmd = sqlcsv.command.Command(**command_args)
+    try:
+        with cmd._connect_exec() as conn:
+            conn.execute(insert_one_sql)
+            raise Exception('An error')
+    except Exception:
+        pass
+
+    result = db.execute(select_all_sql).fetchall()
+    assert result == []
+
+
+def test_connect_exec_without_transaction(db, command_args, insert_one_sql, select_all_sql):
+    cmd = sqlcsv.command.Command(**command_args)
+    try:
+        with cmd._connect_exec() as conn:
+            conn.execute(insert_one_sql)
+            raise Exception('An error')
+    except Exception:
+        pass
+
+    result = db.execute(select_all_sql).fetchall()
+    assert result == [(1, 1, 1.0, 'aaa')]
 
 
 def test_connect_exec_pre_sql(db, command_args, insert_one_sql, select_all_sql):
