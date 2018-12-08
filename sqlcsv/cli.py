@@ -53,6 +53,7 @@ def _flag_to_bool(spec):
 @click.option('-u', '--db-url', envvar='SQLCSV_DB_URL', required=True)
 @click.option('-p', '--pre-sql', default=None)
 @click.option('-P', '--post-sql', default=None)
+@click.option('-X', '--transaction', is_flag=True)
 @click.option('-H', '--no-header', is_flag=True)
 @click.option('-T', '--tab', is_flag=True)
 @click.option('-d', '--delimiter', default=',')
@@ -63,7 +64,7 @@ def _flag_to_bool(spec):
 @click.option('-B', '--no-doublequote', is_flag=True)
 @click.pass_context
 def cli(
-    ctx, db_url, pre_sql, post_sql,
+    ctx, db_url, pre_sql, post_sql, transaction,
     no_header, tab, delimiter, lineterminator,
     quoting, quotechar, escapechar, no_doublequote,
 ):
@@ -71,6 +72,7 @@ def cli(
         db_url=db_url,
         pre_sql=pre_sql,
         post_sql=post_sql,
+        transaction=transaction,
         header=not no_header,
         dialect=dict(
             delimiter='\t' if tab else delimiter,
