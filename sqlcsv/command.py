@@ -61,7 +61,7 @@ class Command:
             if self._header:
                 next(reader)
 
-            if chunk_size:
+            if chunk_size is not None:
                 for chunk in chunker(reader, chunk_size):
                     conn.execute(sql, *map(caster.cast, chunk))
             else:
