@@ -25,7 +25,7 @@ $ pip3 install mysqlclient
 $ pip3 install psycopg2
 ```
 
-## Usage
+## Basic usage
 
 In the examples below following table schema with MySQL is used:
 
@@ -69,7 +69,7 @@ Assume we already have following records on the table:
 +----+---------+-----------+-------------+
 ```
 
-Use `select` subcommand and give `SELECT` query using '--sql' option:
+Use `select` subcommand and give `SELECT` query using `--sql` option:
 
 ```
 $ sqlcsv select --sql 'SELECT * FROM testtable'
