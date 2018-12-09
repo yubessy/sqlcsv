@@ -25,7 +25,7 @@ $ pip3 install mysqlclient
 $ pip3 install psycopg2
 ```
 
-## Usage
+## Basic usage
 
 In the examples below following table schema with MySQL is used:
 
@@ -69,7 +69,7 @@ Assume we already have following records on the table:
 +----+---------+-----------+-------------+
 ```
 
-Use `select` subcommand and give `SELECT` query using '--sql' option:
+Use `select` subcommand and give `SELECT` query using `--sql` option:
 
 ```
 $ sqlcsv select --sql 'SELECT * FROM testtable'
@@ -87,7 +87,7 @@ $ sqlcsv select --sql 'SELECT * FROM testtable' --outfile out.csv
 
 ### INSERT
 
-Assume we already have following dataset as CSV file:
+Assume we already have following dataset in `input.csv`:
 
 ```
 int_col,float_col,varchar_col
@@ -95,11 +95,12 @@ int_col,float_col,varchar_col
 2,2.0,bbb
 ```
 
-Use `insert` subcommand and give `INSERT` query with placeholders using '--sql' option, followed by `--types` option specifying types of each field:
+Use `insert` subcommand and give `INSERT` query with placeholders using `--sql` option, followed by `--types` option specifying types of each field:
 
 ```
-$ sqlcsv insert --types int,float,str \
-  --sql 'INSERT INTO testtable(int_col, float_col, varchar_col) VALUES (%s, %s, %s)
+$ sqlcsv insert \
+  --sql 'INSERT INTO testtable(int_col, float_col, varchar_col) VALUES (%s, %s, %s)' \
+  --infle input.csv --types int,float,str
 ```
 
 The resulted records in the table would be:
@@ -131,8 +132,9 @@ int_col,float_col,varchar_col
 If you want to treat them as 'NULL' in database, use `--nullable` option to convert them before insertion:
 
 ```
-$ sqlcsv insert --types int,float,str --nullable false,true,true \
+$ sqlcsv insert
   --sql 'INSERT INTO testtable(int_col, float_col, varchar_col) VALUES (%s, %s, %s)
+  --infile input.csv --types int,float,str --nullable false,true,true \
 ```
 
 The result would be:
@@ -148,26 +150,11 @@ The result would be:
 
 Note that values of `--nullable` have to be one of `true` or `false`, and they can also be written as `t` or `f` in a short form.
 
-### Read SQL from file
-
-In both `select` and `insert` subcommands you can use `--sqlfile` option intead of `--sql` in order to read query from a file:
-
-```
-$ sqlcsv select --sqlfile query.sql
-$ sqlcsv insert --sqlfile query.sql --types ...
-```
-
-### Pre and post querying
-
-In case you need to execute short query before/after the main query runs, it provides `--pre-sql` and `--post-sql` options to satisfy such needs:
-
-```
-$ sqlcsv select --pre-sql 'SET SESSION wait_timeout = 60' --sqlfile query.sql
-```
+## More options
 
 ### CSV dialect
 
-If your input or output is tab-separated (TSV), use `--tab` option:
+If your desired input or output is tab-separated (TSV), use `--tab` option:
 
 ```
 $ sqlcsv --tab select --sql 'SELECT * FROM testtable'
@@ -178,6 +165,41 @@ id	int_col	float_col	varchar_col
 
 For other format settings, see `sqlcsv --help`.
 Basically it supports the same dialect specification as [csv package in Python's standard libraries](https://docs.python.org/3/library/csv.html) does.
+
+### Read SQL from file
+
+In both `select` and `insert` subcommands you can use `--sqlfile` option intead of `--sql` in order to read query from a file:
+
+```
+$ sqlcsv select --sqlfile query.sql
+$ sqlcsv insert --sqlfile query.sql ...
+```
+
+### Pre and post querying
+
+In case you need to execute short query before/after the main query runs, it provides `--pre-sql` and `--post-sql` options to satisfy such needs:
+
+```
+$ sqlcsv select --pre-sql 'SET SESSION wait_timeout = 60' --sql ...
+```
+
+### Chunked insertion
+
+When you import a large number of records into database, `--chunk-size` option is helpful to save memory usage by splitting file contents up into different pieces and transfer each of them to the database repeatedly.
+
+```
+$ sqlcsv insert --sql ... --infile ... --types ... --chunk-size 1000
+```
+
+### Run in transaction
+
+If you want multiple queries executed in single command call such as ones specified by `--pre-sql` or `--post-sql` to be run in the same transaction, use `--transaction` option as follows:
+
+```
+$ sqlcsv --transaction select --pre-sql ... --post-sql ... --sql ...
+```
+
+It is also a good practice to use this option with `--chunk-size` in order to execute chunked insersion atomically and to avoid leaving incomplete data on table when the query is cancelled or aborted.
 
 ## Comparison between other tools
 
@@ -199,7 +221,7 @@ It provides [sql2csv](https://csvkit.readthedocs.io/en/latest/scripts/sql2csv.ht
 Hoever, there sill might be a few reasons to prefer sqlcsv to them (and this is why it was created):
 
 - CSVKit depends on several libraries including [agate](https://agate.readthedocs.io/) but not all of them are needed for interoperability between SQL databases and CSV files.
-  Sqlcsv uses [csv package in Python's standard libraries] to interact with CSV files and [SQLAlchemy](https://www.sqlalchemy.org/) to query SQL databases, which leads to less library dependencies.
+  Sqlcsv uses [csv package in Python's standard libraries](https://docs.python.org/3/library/csv.html) to interact with CSV files and [SQLAlchemy](https://www.sqlalchemy.org/) to query SQL databases, which leads to less library dependencies.
 - CSVKit's csvsql command takes just table name for import, which make it easy to use.
   However, it is sometimes inconvenient in such cases where CSV file includes only a part of columns and others are generated dynamically by SQL expressions.
   Sqlcsv's `insert` subcommand, by contrast, takes `INSERT` statement, which might be verbose but provides more flexibility.
