@@ -1,9 +1,21 @@
 import csv
 from contextlib import contextmanager
+from itertools import islice
 
 from sqlalchemy import create_engine
 
 from .casting import TypeCaster
+
+
+def chunker(iterable, size):
+    if size <= 0:
+        raise ValueError('Chunk size must be greater than 0')
+
+    it = iter(iterable)
+    chunk = tuple(islice(it, size))
+    while chunk:
+        yield chunk
+        chunk = tuple(islice(it, size))
 
 
 class Command:
@@ -41,7 +53,7 @@ class Command:
             for row in result:
                 writer.writerow(row)
 
-    def insert(self, sql, infile, types, nullables):
+    def insert(self, sql, infile, types, nullables, chunk_size):
         reader = csv.reader(infile, **self._dialect)
         caster = TypeCaster(types, nullables)
 
@@ -49,4 +61,8 @@ class Command:
             if self._header:
                 next(reader)
 
-            conn.execute(sql, *(caster.cast(row) for row in reader))
+            if chunk_size:
+                for chunk in chunker(reader, chunk_size):
+                    conn.execute(sql, *map(caster.cast, chunk))
+            else:
+                conn.execute(sql, *map(caster.cast, reader))

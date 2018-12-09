@@ -103,11 +103,12 @@ def select(ctx, sql, sqlfile, outfile):
 @click.option('-i', '--infile', type=click.File('r'), default=sys.stdin)
 @click.option('-t', '--types', type=str, required=True)
 @click.option('-n', '--nullables', type=str, default=None)
+@click.option('-c', '--chunk-size', type=int, default=None)
 @click.pass_context
-def insert(ctx, sql, sqlfile, infile, types, nullables):
+def insert(ctx, sql, sqlfile, infile, types, nullables, chunk_size):
     command = ctx.obj
     sql = _get_sql(sql, sqlfile)
     types = tuple(map(_flag_to_type, types.split(',')))
     nullables = nullables and tuple(map(_flag_to_bool, nullables.split(',')))
 
-    command.insert(sql, infile, types, nullables)
+    command.insert(sql, infile, types, nullables, chunk_size)
