@@ -1,7 +1,7 @@
 from io import StringIO
 from unittest.mock import patch
 
-from pytest import fixture
+from pytest import fixture, raises
 from sqlalchemy import create_engine
 
 import sqlcsv.command
@@ -61,6 +61,14 @@ def test_connect_exec(db, command_args):
     with cmd._connect_exec() as conn:
         result = conn.execute(SQL_SELECT_ALL).fetchall()
         assert result == []
+
+
+def test_connect_exec_without_db_url(db, command_args):
+    command_args['db_url'] = None
+    cmd = sqlcsv.command.Command(**command_args)
+    with raises(ValueError):
+        with cmd._connect_exec():
+            pass
 
 
 def test_connect_exec_with_transaction(db, command_args):

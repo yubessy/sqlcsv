@@ -30,6 +30,9 @@ class Command:
 
     @contextmanager
     def _connect_exec(self):
+        if not self._db_url:
+            raise ValueError('Database connection URL is not set')
+
         engine = create_engine(self._db_url)
 
         with engine.begin() if self._transaction else engine.connect() as conn:
