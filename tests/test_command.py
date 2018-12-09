@@ -134,8 +134,9 @@ def test_insert(db, command_args):
     infile = StringIO('int_col,real_col,text_col\n1,1.0,aaa\n')
     types = [int, float, str]
     nullables = [False, False, False]
+    chunk_size = None
     cmd = sqlcsv.command.Command(**command_args)
-    cmd.insert(SQL_INSERT_PLACEHOLDER, infile, types, nullables)
+    cmd.insert(SQL_INSERT_PLACEHOLDER, infile, types, nullables, chunk_size)
 
     result = db.execute(SQL_SELECT_ALL).fetchall()
     assert result == [(1, 1, 1.0, 'aaa')]
@@ -145,9 +146,10 @@ def test_insert_no_header(db, command_args):
     infile = StringIO('1,1.0,aaa\n')
     types = [int, float, str]
     nullables = [False, False, False]
+    chunk_size = None
     command_args['header'] = False
     cmd = sqlcsv.command.Command(**command_args)
-    cmd.insert(SQL_INSERT_PLACEHOLDER, infile, types, nullables)
+    cmd.insert(SQL_INSERT_PLACEHOLDER, infile, types, nullables, chunk_size)
 
     result = db.execute(SQL_SELECT_ALL).fetchall()
     assert result == [(1, 1, 1.0, 'aaa')]
@@ -157,8 +159,79 @@ def test_insert_nullable(db, command_args):
     infile = StringIO('int_col,real_col,text_col\n,,\n')
     types = [int, float, str]
     nullables = [True, True, True]
+    chunk_size = None
     cmd = sqlcsv.command.Command(**command_args)
-    cmd.insert(SQL_INSERT_PLACEHOLDER, infile, types, nullables)
+    cmd.insert(SQL_INSERT_PLACEHOLDER, infile, types, nullables, chunk_size)
 
     result = db.execute(SQL_SELECT_ALL).fetchall()
     assert result == [(1, None, None, None)]
+
+
+def test_insert_chunk_size(db, command_args):
+    infile = StringIO('''int_col,real_col,text_col
+        1,1.0,aaa
+        2,2.0,bbb
+        3,3.0,ccc
+        4,4.0,ddd
+        5,5.0,eee
+    '''.replace(' ', '').strip())
+    types = [int, float, str]
+    nullables = [False, False, False]
+    chunk_size = 2
+    cmd = sqlcsv.command.Command(**command_args)
+    cmd.insert(SQL_INSERT_PLACEHOLDER, infile, types, nullables, chunk_size)
+
+    result = db.execute(SQL_SELECT_ALL).fetchall()
+    assert result == [
+        (1, 1, 1.0, 'aaa'),
+        (2, 2, 2.0, 'bbb'),
+        (3, 3, 3.0, 'ccc'),
+        (4, 4, 4.0, 'ddd'),
+        (5, 5, 5.0, 'eee'),
+    ]
+
+
+def test_insert_chunk_size_contaminated(db, command_args):
+    infile = StringIO('''int_col,real_col,text_col
+        1,1.0,aaa
+        2,2.0,bbb
+        3,3.0,ccc
+        xxx,4.0,ddd
+        5,5.0,eee
+    '''.replace(' ', '').strip())
+    types = [int, float, str]
+    nullables = [False, False, False]
+    chunk_size = 2
+    cmd = sqlcsv.command.Command(**command_args)
+    try:
+        cmd.insert(SQL_INSERT_PLACEHOLDER, infile, types, nullables, chunk_size)
+    except ValueError:
+        pass
+
+    result = db.execute(SQL_SELECT_ALL).fetchall()
+    assert result == [
+        (1, 1, 1.0, 'aaa'),
+        (2, 2, 2.0, 'bbb'),
+    ]
+
+
+def test_insert_chunk_size_contaminated_with_transaction(db, command_args):
+    infile = StringIO('''int_col,real_col,text_col
+        1,1.0,aaa
+        2,2.0,bbb
+        3,3.0,ccc
+        xxx,4.0,ddd
+        5,5.0,eee
+    '''.replace(' ', '').strip())
+    types = [int, float, str]
+    nullables = [False, False, False]
+    chunk_size = 2
+    command_args['transaction'] = True
+    cmd = sqlcsv.command.Command(**command_args)
+    try:
+        cmd.insert(SQL_INSERT_PLACEHOLDER, infile, types, nullables, chunk_size)
+    except ValueError:
+        pass
+
+    result = db.execute(SQL_SELECT_ALL).fetchall()
+    assert result == []
