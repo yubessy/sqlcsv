@@ -50,7 +50,7 @@ def _flag_to_bool(spec):
 
 
 @click.group()
-@click.option('-u', '--db-url', envvar='SQLCSV_DB_URL', required=True,
+@click.option('-u', '--db-url', envvar='SQLCSV_DB_URL',
               help='Datasbase connection URL.')
 @click.option('-p', '--pre-sql', default=None,
               help='SQL to be run before main operation.')
