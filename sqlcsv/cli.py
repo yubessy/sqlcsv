@@ -56,7 +56,6 @@ def _open(filename, mode="rt"):
         return click.open_file(filename, mode)
 
 
-
 @click.group()
 @click.option('-u', '--db-url', envvar='SQLCSV_DB_URL',
               help='Datasbase connection URL.')
@@ -111,7 +110,8 @@ def cli(
               help='SELECT query string.')
 @click.option('-f', '--sqlfile', type=click.File('r'), default=None,
               help='SELECT query file.')
-@click.option('-o', '--outfile', type=click.Path(dir_okay=False, writable=True, allow_dash=True), default="-",
+@click.option('-o', '--outfile',
+              type=click.Path(dir_okay=False, writable=True, allow_dash=True), default="-",
               help='Output CSV file.')
 @click.pass_context
 def select(ctx, sql, sqlfile, outfile):
@@ -128,7 +128,8 @@ def select(ctx, sql, sqlfile, outfile):
               help='INSERT query string.')
 @click.option('-f', '--sqlfile', type=click.File('r'), default=None,
               help='INSERT query file.')
-@click.option('-i', '--infile', type=click.Path(dir_okay=False, readable=True, allow_dash=True), default="-",
+@click.option('-i', '--infile',
+              type=click.Path(dir_okay=False, readable=True, allow_dash=True), default="-",
               help='Input CSV file.')
 @click.option('-t', '--types', type=str, required=True,
               help="Types of each column, comma-separated e.g. 'int,float,string'.")
