@@ -1,10 +1,10 @@
 import csv
-import sys
+import gzip
+import os
 
 import click
 
 from .command import Command
-
 
 QUOTING = {
     'ALL': csv.QUOTE_ALL,
@@ -47,6 +47,14 @@ def _flag_to_bool(spec):
         return False
     else:
         raise ValueError("Unknown nullable spec '{}'".format(spec))
+
+
+def _open(filename, mode="rt"):
+    if os.path.splitext(filename)[1] == ".gz":
+        return gzip.open(filename, mode)
+    else:
+        return click.open_file(filename, mode)
+
 
 
 @click.group()
@@ -103,7 +111,7 @@ def cli(
               help='SELECT query string.')
 @click.option('-f', '--sqlfile', type=click.File('r'), default=None,
               help='SELECT query file.')
-@click.option('-o', '--outfile', type=click.File('w'), default=sys.stdout,
+@click.option('-o', '--outfile', type=click.Path(dir_okay=False, writable=True, allow_dash=True), default="-",
               help='Output CSV file.')
 @click.pass_context
 def select(ctx, sql, sqlfile, outfile):
@@ -111,7 +119,8 @@ def select(ctx, sql, sqlfile, outfile):
     command = ctx.obj
     sql = _get_sql(sql, sqlfile)
 
-    command.select(sql, outfile)
+    with _open(outfile, "wt") as f:
+        command.select(sql, f)
 
 
 @cli.command()
@@ -119,7 +128,7 @@ def select(ctx, sql, sqlfile, outfile):
               help='INSERT query string.')
 @click.option('-f', '--sqlfile', type=click.File('r'), default=None,
               help='INSERT query file.')
-@click.option('-i', '--infile', type=click.File('r'), default=sys.stdin,
+@click.option('-i', '--infile', type=click.Path(dir_okay=False, readable=True, allow_dash=True), default="-",
               help='Input CSV file.')
 @click.option('-t', '--types', type=str, required=True,
               help="Types of each column, comma-separated e.g. 'int,float,string'.")
@@ -135,4 +144,5 @@ def insert(ctx, sql, sqlfile, infile, types, nullables, chunk_size):
     types = tuple(map(_flag_to_type, types.split(',')))
     nullables = nullables and tuple(map(_flag_to_bool, nullables.split(',')))
 
-    command.insert(sql, infile, types, nullables, chunk_size)
+    with _open(infile, "rt") as f:
+        command.insert(sql, f, types, nullables, chunk_size)
